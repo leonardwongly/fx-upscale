@@ -14,7 +14,9 @@ public class UpscalingExportSession {
         self.outputURL = outputURL
         self.outputSize = outputSize
     }
-
+    
+    
+    
     // MARK: Public
 
     public static let maxSize = 16384
@@ -24,13 +26,6 @@ public class UpscalingExportSession {
     public let outputSize: CGSize
 
     public func export() async throws {
-        if outputURL.pathExtension.lowercased() != "mov",
-           (outputSize.width * outputSize.height) > Self.maxNonProResPixelCount {
-            outputURL = outputURL
-                .deletingPathExtension()
-                .appendingPathExtension("mov")
-        }
-
         guard !FileManager.default.fileExists(atPath: outputURL.path(percentEncoded: false)) else {
             throw Error.outputURLAlreadyExists
         }
@@ -39,7 +34,7 @@ public class UpscalingExportSession {
             switch outputURL.pathExtension.lowercased() {
             case "mov": return .mov
             case "m4v": return .m4v
-            default: return .mp4
+            default: return .mov
             }
         }()
 
@@ -96,11 +91,7 @@ public class UpscalingExportSession {
                     throw Error.couldNotAddAssetReaderVideoOutput
                 }
 
-                var videoCodec = formatDescription?.videoCodecType ?? .hevc
-                if !videoCodec.isProRes,
-                   (outputSize.width * outputSize.height) > Self.maxNonProResPixelCount {
-                    videoCodec = .proRes422
-                }
+                let videoCodec = formatDescription?.videoCodecType ?? .hevc
 
                 var outputSettings: [String: Any] = [
                     AVVideoWidthKey: outputSize.width,
@@ -216,7 +207,7 @@ public class UpscalingExportSession {
 
     // MARK: Private
 
-    private static let maxNonProResPixelCount: CGFloat = 3840 * 2160
+  
 }
 
 // MARK: UpscalingExportSession.Error

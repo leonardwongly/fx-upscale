@@ -7,14 +7,14 @@ import Upscaling
 // MARK: - MetalFXUpscale
 
 @main struct FXUpscale: AsyncParsableCommand {
-    @Argument(help: "The video file to upscale", transform: URL.init(fileURLWithPath:)) var url: URL
+    @Argument(help: "Video file to upscale: ", transform: URL.init(fileURLWithPath:)) var url: URL
 
-    @Option(name: .shortAndLong, help: "The output file width") var width: Int?
-    @Option(name: .shortAndLong, help: "The output file height") var height: Int?
+    @Option(name: .shortAndLong, help: "Output file width: ") var width: Int?
+    @Option(name: .shortAndLong, help: "Output file height: ") var height: Int?
 
     mutating func run() async throws {
-        guard ["mov", "m4v", "mp4"].contains(url.pathExtension.lowercased()) else {
-            throw ValidationError("Unsupported file type. Supported types: mov, m4v, mp4")
+        guard ["mov","mkv", "m4v", "mp4"].contains(url.pathExtension.lowercased()) else {
+            throw ValidationError("Unsupported file type. Supported types: mov, mkv, m4v, mp4")
         }
 
         guard FileManager.default.fileExists(atPath: url.path) else {
@@ -28,14 +28,7 @@ import Upscaling
             throw ValidationError("Failed to get video track from input file")
         }
 
-        let formatDescription = try await videoTrack.load(.formatDescriptions).first
-        let dimensions = formatDescription.map {
-            CMVideoFormatDescriptionGetDimensions($0)
-        }.map {
-            CGSize(width: Int($0.width), height: Int($0.height))
-        }
-        let naturalSize = try await videoTrack.load(.naturalSize)
-        let inputSize = dimensions ?? naturalSize
+        let inputSize = try await videoTrack.load(.naturalSize)
 
         // 1. Use passed in width/height
         // 2. Use proportional width/height if only one is specified
@@ -67,6 +60,6 @@ import Upscaling
         ActivityIndicator.start()
         try await exportSession.export()
         ActivityIndicator.stop()
-        CommandLine.success("Video successfully upscaled!")
+        CommandLine.success("Upscaled completed 😊")
     }
 }
