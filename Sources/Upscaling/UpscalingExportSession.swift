@@ -8,11 +8,13 @@ public class UpscalingExportSession {
     public init(
         asset: AVAsset,
         outputURL: URL,
-        outputSize: CGSize
+        outputSize: CGSize,
+        creator: String? = nil
     ) {
         self.asset = asset
         self.outputURL = outputURL
         self.outputSize = outputSize
+        self.creator = creator
     }
     
     
@@ -24,19 +26,14 @@ public class UpscalingExportSession {
     public let asset: AVAsset
     public private(set) var outputURL: URL
     public let outputSize: CGSize
+    public let creator: String?
 
     public func export() async throws {
         guard !FileManager.default.fileExists(atPath: outputURL.path(percentEncoded: false)) else {
             throw Error.outputURLAlreadyExists
         }
 
-        let outputFileType: AVFileType = {
-            switch outputURL.pathExtension.lowercased() {
-            case "mov": return .mov
-            case "m4v": return .m4v
-            default: return .mov
-            }
-        }()
+        let outputFileType: AVFileType = .mov
 
         let assetWriter = try AVAssetWriter(outputURL: outputURL, fileType: outputFileType)
         assetWriter.metadata = try await asset.load(.metadata)
@@ -72,7 +69,7 @@ public class UpscalingExportSession {
                     videoComposition.colorYCbCrMatrix = formatDescription?.colorYCbCrMatrix
                     videoComposition.frameDuration = CMTime(
                         value: 1,
-                        timescale: nominalFrameRate > 0 ? CMTimeScale(nominalFrameRate) : 30
+                        timescale: nominalFrameRate > 0 ? CMTimeScale(nominalFrameRate) : 60
                     )
                     videoComposition.renderSize = outputSize
                     let instruction = AVMutableVideoCompositionInstruction()
@@ -91,12 +88,11 @@ public class UpscalingExportSession {
                     throw Error.couldNotAddAssetReaderVideoOutput
                 }
 
-                let videoCodec = formatDescription?.videoCodecType ?? .hevc
 
                 var outputSettings: [String: Any] = [
                     AVVideoWidthKey: outputSize.width,
                     AVVideoHeightKey: outputSize.height,
-                    AVVideoCodecKey: videoCodec
+                    AVVideoCodecKey: AVVideoCodecType.hevc
                 ]
                 if let colorPrimaries = formatDescription?.colorPrimaries,
                    let colorTransferFunction = formatDescription?.colorTransferFunction,
@@ -110,6 +106,9 @@ public class UpscalingExportSession {
 
                 let videoInput = AVAssetWriterInput(mediaType: .video, outputSettings: outputSettings)
                 videoInput.expectsMediaDataInRealTime = false
+                
+                videoInput.transform = try await track.load(.preferredTransform)
+                
                 if assetWriter.canAdd(videoInput) {
                     assetWriter.add(videoInput)
                 } else {
@@ -203,6 +202,25 @@ public class UpscalingExportSession {
                 }
             }
         } as Void
+        if let creator {
+                   let value = try PropertyListSerialization.data(
+                       fromPropertyList: creator,
+                       format: .binary,
+                       options: 0
+                   )
+                   _ = outputURL.withUnsafeFileSystemRepresentation { fileSystemPath in
+                       value.withUnsafeBytes {
+                           setxattr(
+                               fileSystemPath,
+                               "com.apple.metadata:kMDItemCreator",
+                               $0.baseAddress,
+                               value.count,
+                               0,
+                               0
+                           )
+                       }
+                   }
+               }
     }
 
     // MARK: Private

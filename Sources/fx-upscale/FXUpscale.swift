@@ -50,7 +50,8 @@ import Upscaling
         let exportSession = UpscalingExportSession(
             asset: asset,
             outputURL: outputURL,
-            outputSize: outputSize
+            outputSize: outputSize,
+            creator: ProcessInfo.processInfo.processName
         )
 
         CommandLine.info([
