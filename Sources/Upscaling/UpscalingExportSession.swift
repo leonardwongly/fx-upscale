@@ -33,7 +33,7 @@ public class UpscalingExportSession {
             throw Error.outputURLAlreadyExists
         }
 
-        let outputFileType: AVFileType = .mov
+        let outputFileType: AVFileType = .mp4
 
         let assetWriter = try AVAssetWriter(outputURL: outputURL, fileType: outputFileType)
         assetWriter.metadata = try await asset.load(.metadata)

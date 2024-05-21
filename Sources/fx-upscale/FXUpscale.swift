@@ -21,7 +21,7 @@ import Upscaling
             throw ValidationError("File does not exist at \(url.path(percentEncoded: false))")
         }
 
-        let outputURL = url.renamed { "\($0) Upscaled" }
+        let outputURL = url.renamed { "\($0) -2x" }
 
         let asset = AVAsset(url: url)
         guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
