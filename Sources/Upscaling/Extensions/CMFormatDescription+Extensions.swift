@@ -6,11 +6,14 @@ extension CMFormatDescription {
         case .hevc: return .hevc
         case .h264: return .h264
         case .jpeg: return .jpeg
+        #if !os(visionOS)
         case .proRes4444: return .proRes4444
         case .proRes422: return .proRes422
         case .proRes422HQ: return .proRes422HQ
         case .proRes422LT: return .proRes422LT
         case .proRes422Proxy: return .proRes422Proxy
+        case .proRes4444XQ: return AVVideoCodecType(rawValue: "ap4x")
+        #endif
         case .hevcWithAlpha: return .hevcWithAlpha
         default: return nil
         }
@@ -58,5 +61,15 @@ extension CMFormatDescription {
         case kCMFormatDescriptionYCbCrMatrix_ITU_R_2020: AVVideoYCbCrMatrix_ITU_R_2020
         default: nil
         }
+    }
+
+    @available(macOS 14.0, iOS 17.0, *) var hasLeftAndRightEye: Bool {
+        let hasLeftEye = (tagCollections ?? []).contains {
+            $0.contains { $0 == .stereoView(.leftEye) }
+        }
+        let hasRightEye = (tagCollections ?? []).contains {
+            $0.contains { $0 == .stereoView(.rightEye) }
+        }
+        return hasLeftEye && hasRightEye
     }
 }
